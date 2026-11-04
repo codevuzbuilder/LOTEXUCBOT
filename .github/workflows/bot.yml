@@ -1,31 +1,54 @@
-name: Telegram Bot 24/7
+name: Telegram Bot 24/7 / run-bot
 
 on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
   schedule:
-    - cron: '*/30 * * * *' # Har 30 daqiqada avtomatik qayta ishga tushiradi
-  workflow_dispatch: # Qo'lda "Run workflow" tugmasini bosib ishga tushirish uchun
+    # Har 10 daqiqada tekshiradi, agar bot o'chib qolgan bo'lsa qayta yoqadi
+    - cron: "*/10 * * * *"
+
+# Bir vaqtning o'zida 1 ta bot ishlasin, eskisi tugamasdan yangisi boshlanmasin
+concurrency:
+  group: telegram-bot
+  cancel-in-progress: false
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 350 # GitHub limiti 6 soat, 10 daqiqada cron qayta yoqadi
+    
     steps:
-      - name: Kodlarni olish (Checkout)
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Python'ni o'rnatish
+      - name: Setup Python 3.10
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
+          cache: 'pip'
 
-      - name: Kerakli kutubxonalarni o'rnatish
+      - name: Install dependencies
+        working-directory: ./LOTEXUCBOT
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f ../requirements.txt ]; then pip install -r ../requirements.txt; fi
+          pip install aiogram python-dotenv || true
 
-      - name: Botni ishga tushirish
+      - name: Botni ishga tushirish (auto-restart bilan)
+        working-directory: ./LOTEXUCBOT
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
+          PYTHONPATH: ${{ github.workspace }}
         run: |
-          python main.py
+          echo "Bot $GITHUB_WORKSPACE/LOTEXUCBOT papkasidan ishga tushyapti"
+          # Bot yiqilsa 5 soniyadan keyin qayta tiklaydi, 6 soatgacha ishlaydi
+          while true; do
+            echo "Starting main.py..."
+            python main.py
+            EXIT_CODE=$?
+            echo "Bot to'xtadi, exit code: $EXIT_CODE. 5 soniyadan keyin qayta uriniladi..."
+            sleep 5
+          done
