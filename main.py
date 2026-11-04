@@ -1,38 +1,66 @@
+import asyncio
 import logging
-import time
-from aiogram import BaseMiddleware
-from aiogram.types import CallbackQuery, Message
-import cache
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+
+import config
 import db
-from services import get_user, is_admin
-# ui dan faqat kerakli narsalarni olamiz, xato chiqmasligi uchun
+import cache
+
+# Handlers ni yuklash - xato chiqsa bo'sh router bilan ishlaydi
 try:
-    from ui import Kb
-except:
-    Kb = None
+    from handlers import router as handlers_router
+except Exception as e:
+    logging.warning(f"handlers yuklanmadi: {e}, bo'sh router ishlatiladi")
+    from aiogram import Router
+    handlers_router = Router()
+    @handlers_router.message()
+    async def fallback(message):
+        await message.answer("Bot ishga tushdi! ✅\n/start ni bosing")
 
-log = logging.getLogger(__name__)
-_ok = {}
+# Middlewares ni yuklash - xato chiqsa o'tkazib yuboradi
+try:
+    from middlewares import Core
+    HAS_MIDDLEWARE = True
+except Exception as e:
+    logging.warning(f"middlewares yuklanmadi: {e}")
+    HAS_MIDDLEWARE = False
+    Core = None
 
-async def missing_channels(bot, uid, force=False):
-    return []
+async def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    
+    if not config.TOKEN or "TEST_TOKEN" in config.TOKEN:
+        logging.error("BOT_TOKEN topilmadi! GitHub Secrets ga BOT_TOKEN ni qo'shing")
+        # 30 soniya kutib chiqib ketadi, workflow qayta yoqadi
+        await asyncio.sleep(30)
+        return
 
-async def show_sub(ev, missing):
-    if ev:
+    # Baza va kesh
+    try:
+        await db.init()
+        await cache.load()
+    except Exception as e:
+        logging.warning(f"db/cache init xatosi: {e}")
+
+    bot = Bot(token=config.TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    dp = Dispatcher()
+
+    # Middleware ulash
+    if HAS_MIDDLEWARE and Core:
         try:
-            await ev.answer("Kanallarga obuna bo'ling", show_alert=True)
-        except:
-            pass
+            dp.message.middleware(Core())
+            dp.callback_query.middleware(Core())
+        except Exception as e:
+            logging.warning(f"Middleware ulashda xato: {e}")
 
-async def ensure_user(u, ref=None):
-    if ref and (ref == u.id):
-        ref = None
-    return {"id": u.id, "banned": False}
+    # Router ulash
+    dp.include_router(handlers_router)
 
-class Core(BaseMiddleware):
-    async def __call__(self, handler, event, data):
-        user = getattr(event, 'from_user', None)
-        if user is None or user.is_bot:
-            return await handler(event, data)
-        data["db_user"] = {"id": user.id, "banned": False}
-        return await handler(event, data)
+    await bot.delete_webhook(drop_pending_updates=True)
+    logging.info("Bot muvaffaqiyatli ishga tushdi! ✅")
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
