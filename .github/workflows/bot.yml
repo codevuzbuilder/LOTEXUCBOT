@@ -4,21 +4,18 @@ on:
   push:
     branches: [ "main" ]
   schedule:
-    # Har 6 soatda avtomatik qayta ishga tushadi (24/7 uchun)
     - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 350 # 6 soatdan sal kam, 【entity-GitHub¦canonical_name=GitHub】 limiti
+    timeout-minutes: 350
 
     steps:
-      - name: Kodni olish
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -26,23 +23,25 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install aiogram python-dotenv
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Handlers dan import tekshiruvi
+      - name: Handlers tekshiruvi
         run: |
-          echo "Handlers papkasidan tekshirilyapti..."
           ls -la handlers/
-          python -c "from handlers import admin_core, admin_content, admin_design; print('✅ 3 ta fayl ham handlers dan olindi')"
+          python -c "from handlers import admin_core, admin_content, admin_design; print('✅ handlers dan olindi')"
 
       - name: Botni 24/7 ishga tushirish
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
         run: |
+          if [ -z "$BOT_TOKEN" ]; then
+            echo "❌ BOT_TOKEN Secrets da topilmadi!"
+            exit 1
+          fi
+          echo "Token topildi, uzunligi: ${#BOT_TOKEN}"
           echo "LOTEX SHOP ishga tushdi... 24/7"
-          # To'xtab qolsa avtomatik qayta yoqadi
           while true; do
             python main.py
-            echo "Bot to'xtadi, 10 sekunddan keyin qayta yonadi..."
+            echo "Qayta yonmoqda... 10s"
             sleep 10
           done
