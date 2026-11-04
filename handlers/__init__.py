@@ -2,8 +2,10 @@ from aiogram import Router
 
 router = Router()
 
-# Agar handlerlar boshqa alohida fayllarda (masalan, user.py, admin.py) bo'lsa, 
-# ularni shu yerda routerga ulab ketishingiz mumkin:
-# from . import user, admin
-# router.include_router(user.router)
-# router.include_router(admin.router)
+@router.message()
+async def start_handler(message):
+    await message.answer("Bot ishga tushdi! ✅\n\n/start ni bosing\n\nBu vaqtinchalik handler. Asosiy handlerlaringizni shu yerga qo'shing.")
+
+@router.message(lambda m: m.text and m.text.startswith("/start"))
+async def start_cmd(message):
+    await message.answer("Assalomu alaykum! Bot 24/7 ishlayapti 🚀")
