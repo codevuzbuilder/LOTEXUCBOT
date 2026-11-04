@@ -1,4 +1,5 @@
-import os
+BOT_TOKEN = "BOT_TOKENINGNI_SHU_YERGA_YOZ"
+ADMIN_IDS = [123456789]  # @userinfobot dan o'z IDingni ol
 
-TOKEN = os.getenv("BOT_TOKEN", "SIZNING_TOKENINGIZ")
-ADMIN_IDS = [int(i) for i in os.getenv("ADMIN_IDS", "123456789").split(",")]
+# LOTEX SHOP sozlamalari
+SHOP_NAME = "LOTEX SHOP"
