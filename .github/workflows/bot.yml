@@ -1,50 +1,48 @@
-name: Telegram Bot 24/7 / run-bot
+name: LOTEX SHOP 24/7 Bot
 
 on:
   push:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
+    branches: [ "main" ]
   schedule:
-    - cron: "*/10 * * * *"
-
-concurrency:
-  group: telegram-bot
-  cancel-in-progress: false
+    # Har 6 soatda avtomatik qayta ishga tushadi (24/7 uchun)
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
-    
+    timeout-minutes: 350 # 6 soatdan sal kam, 【entity-GitHub¦canonical_name=GitHub】 limiti
+
     steps:
-      - name: Checkout code
+      - name: Kodni olish
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.10
+      - name: Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
-          cache: 'pip'
+          python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Kutubxonalar
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
+          pip install aiogram python-dotenv
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install aiogram python-dotenv || true
-          echo "Fayllar ro'yxati:"
-          ls -la
 
-      - name: Botni ishga tushirish (auto-restart bilan)
+      - name: Handlers dan import tekshiruvi
+        run: |
+          echo "Handlers papkasidan tekshirilyapti..."
+          ls -la handlers/
+          python -c "from handlers import admin_core, admin_content, admin_design; print('✅ 3 ta fayl ham handlers dan olindi')"
+
+      - name: Botni 24/7 ishga tushirish
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
-          PYTHONPATH: ${{ github.workspace }}
         run: |
-          echo "Ishga tushyapti, papka: $(pwd)"
+          echo "LOTEX SHOP ishga tushdi... 24/7"
+          # To'xtab qolsa avtomatik qayta yoqadi
           while true; do
-            echo "Starting main.py..."
             python main.py
-            EXIT_CODE=$?
-            echo "Bot to'xtadi, exit code: $EXIT_CODE. 5 soniyadan keyin qayta uriniladi..."
-            sleep 5
+            echo "Bot to'xtadi, 10 sekunddan keyin qayta yonadi..."
+            sleep 10
           done
