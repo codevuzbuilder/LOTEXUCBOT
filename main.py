@@ -1,35 +1,38 @@
-import asyncio
 import logging
-from aiogram import Bot, Dispatcher
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
-
-import config
-import db
+import time
+from aiogram import BaseMiddleware
+from aiogram.types import CallbackQuery, Message
 import cache
-from handlers import router as handlers_router
-from middlewares import Core
+import db
+from services import get_user, is_admin
+# ui dan faqat kerakli narsalarni olamiz, xato chiqmasligi uchun
+try:
+    from ui import Kb
+except:
+    Kb = None
 
-async def main():
-    logging.basicConfig(level=logging.INFO)
-    
-    # Ma'lumotlar bazasi va keshni yuklash
-    await db.init()
-    await cache.load()
+log = logging.getLogger(__name__)
+_ok = {}
 
-    bot = Bot(token=config.TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    dp = Dispatcher()
+async def missing_channels(bot, uid, force=False):
+    return []
 
-    # Middleware'ni ulash
-    dp.message.middleware(Core())
-    dp.callback_query.middleware(Core())
+async def show_sub(ev, missing):
+    if ev:
+        try:
+            await ev.answer("Kanallarga obuna bo'ling", show_alert=True)
+        except:
+            pass
 
-    # Barcha handlerlarni ulash
-    dp.include_router(handlers_router)
+async def ensure_user(u, ref=None):
+    if ref and (ref == u.id):
+        ref = None
+    return {"id": u.id, "banned": False}
 
-    await bot.delete_webhook(drop_pending_updates=True)
-    logging.info("Bot muvaffaqiyatli ishga tushdi!")
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+class Core(BaseMiddleware):
+    async def __call__(self, handler, event, data):
+        user = getattr(event, 'from_user', None)
+        if user is None or user.is_bot:
+            return await handler(event, data)
+        data["db_user"] = {"id": user.id, "banned": False}
+        return await handler(event, data)
