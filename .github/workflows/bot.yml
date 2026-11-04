@@ -5,10 +5,8 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
   schedule:
-    # Har 10 daqiqada tekshiradi, agar bot o'chib qolgan bo'lsa qayta yoqadi
     - cron: "*/10 * * * *"
 
-# Bir vaqtning o'zida 1 ta bot ishlasin, eskisi tugamasdan yangisi boshlanmasin
 concurrency:
   group: telegram-bot
   cancel-in-progress: false
@@ -16,7 +14,7 @@ concurrency:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 350 # GitHub limiti 6 soat, 10 daqiqada cron qayta yoqadi
+    timeout-minutes: 350
     
     steps:
       - name: Checkout code
@@ -29,22 +27,20 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        working-directory: ./LOTEXUCBOT
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          if [ -f ../requirements.txt ]; then pip install -r ../requirements.txt; fi
           pip install aiogram python-dotenv || true
+          echo "Fayllar ro'yxati:"
+          ls -la
 
       - name: Botni ishga tushirish (auto-restart bilan)
-        working-directory: ./LOTEXUCBOT
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          echo "Bot $GITHUB_WORKSPACE/LOTEXUCBOT papkasidan ishga tushyapti"
-          # Bot yiqilsa 5 soniyadan keyin qayta tiklaydi, 6 soatgacha ishlaydi
+          echo "Ishga tushyapti, papka: $(pwd)"
           while true; do
             echo "Starting main.py..."
             python main.py
