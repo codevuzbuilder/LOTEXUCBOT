@@ -1,11 +1,9 @@
-import logging
-import time
+async def get_user(user_id):
+    return {"id": user_id, "banned": False}
 
-import config
-import cache
-import db
-from ui import T, esc, fmt_money, send_fresh, Kb
-
-log = logging.getLogger(__name__)
-_username: str | None = None
-# ... (xizmat funksiyalari[span_19](start_span)[span_19](end_span))
+def is_admin(user_id):
+    try:
+        import config
+        return user_id in getattr(config, 'ADMIN_LIST', [])
+    except:
+        return False
