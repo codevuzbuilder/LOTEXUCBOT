@@ -1,4 +1,4 @@
-"""Interfeys: rangli tugmalar, premium emoji, matn/media yuborish.""[span_16](start_span)"[span_16](end_span)
+"""Interfeys: rangli tugmalar, premium emoji, matn/media yuborish."""
 import html
 import logging
 import re
@@ -9,4 +9,4 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 import cache
 from defaults import BUTTONS, SAMPLE, TEXTS
-# ... (qolgan interfeys funksiyalari[span_17](start_span)[span_17](end_span))
+# ... (qolgan interfeys funksiyalari)
