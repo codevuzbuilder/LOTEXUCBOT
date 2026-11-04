@@ -1,0 +1,31 @@
+name: Telegram Bot 24/7
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Har 30 daqiqada avtomatik qayta ishga tushiradi
+  workflow_dispatch: # Qo'lda "Run workflow" tugmasini bosib ishga tushirish uchun
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodlarni olish (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Python'ni o'rnatish
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Kerakli kutubxonalarni o'rnatish
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Botni ishga tushirish
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
+        run: |
+          python main.py
